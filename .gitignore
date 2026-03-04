@@ -1,0 +1,7 @@
+/dist
+/src/xairmute.egg-info
+/.venv
+/setup.cfg
+/pyproject.toml
+/.idea
+/src/xairmute_sokoloft/__init__.py
