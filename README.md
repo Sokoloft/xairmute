@@ -20,6 +20,7 @@ options:
   -v, --version         show program's version number and exit
   -c, --channel #       toggle channel # (1-18)
   -g, --group #         toggle mute group # (1-4)
+  -q, --query #         query channel mute status
   --port [PORT]         change mixer's port in config
   --ip [192.168.X.XXX]  change mixer's ip in config
 ```

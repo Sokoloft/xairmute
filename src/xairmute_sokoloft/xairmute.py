@@ -12,7 +12,7 @@ by the Free Software Foundation, version 3 of the License.
 
 import sys
 from json import dump, load, JSONDecodeError
-from ipaddress import ip_address
+from ipaddress import IPv4Address, ip_address
 from socket import socket, AF_INET, SOCK_DGRAM, timeout, SOL_SOCKET, SO_REUSEADDR
 from argparse import ArgumentParser
 from pathlib import Path
@@ -21,7 +21,7 @@ from pythonosc.osc_message_builder import OscMessageBuilder
 from pythonosc.osc_packet import OscPacket
 
 App = "xairmute"
-Version = "1.0.0"
+Version = "1.0.1"
 
 CONFIG_DIR = Path.home() / ".config" / App
 CONFIG_FILE = CONFIG_DIR / "config.json"
@@ -62,10 +62,15 @@ def prompt_value(prompt_text, validator, error_message):
             print(f"\n{error_message}")
 
 
+def validate_ip(value):
+    IPv4Address(value)
+    return value
+
+
 def ip_prompt():
     return prompt_value(
         "Enter your Mixer's IP address",
-        lambda v: str(ip_address(v)),
+        validate_ip,
         "Invalid IP address. Please enter a valid IPv4 address."
     )
 
@@ -149,6 +154,7 @@ def main():
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-c", "--channel", type=int, metavar="#", help="toggle channel # (1-18)")
     group.add_argument("-g", "--group", type=int, metavar="#", help="toggle mute group # (1-4)")
+    group.add_argument("-q", "--query", type=int, metavar="#", help="query channel mute status")
     group.add_argument(
         "--port",
         nargs="?",
@@ -178,7 +184,7 @@ def main():
             new_ip = ip_prompt()
         else:
             try:
-                ip_address(args.ip)
+                IPv4Address(args.ip)
                 new_ip = args.ip
             except ValueError:
                 parser.error("Invalid IP address format.")
@@ -212,9 +218,9 @@ def main():
     # ----- Load config for normal operation -----
     config = ensure_config()
 
-    mixer_ip = config["mixer_ip"]
-    mixer_port = config["mixer_port"]
-    timeout_seconds = config["timeout_seconds"]
+    mixer_ip = str(config["mixer_ip"])
+    mixer_port = int(config["mixer_port"])
+    timeout_seconds = float(config["timeout_seconds"])
 
     try:
         ip_address(mixer_ip)
@@ -222,28 +228,27 @@ def main():
         print(f"\nInvalid IP in {CONFIG_FILE}. Use --ip to fix it.\n")
         sys.exit(1)
 
-    # ----- Determine target -----
-    address = None
-    target_name = None
-    target_num = None
 
+    # ----- Determine target -----
     if args.channel is not None:
         if not 1 <= args.channel <= 18:
             parser.error("Channel number must be between 1 and 18")
         address = f"/ch/{args.channel:02d}/mix/on"
-        target_name = "Channel"
-        target_num = args.channel
 
     elif args.group is not None:
         if not 1 <= args.group <= 4:
             parser.error("Mute group number must be between 1 and 4")
         address = f"/config/mute/{args.group}"
-        target_name = "Mute Group"
-        target_num = args.group
 
-    # If no action was provided
-    if args.channel is None and args.group is None:
-        parser.error("You must specify --channel or --group.")
+    elif args.query is not None:
+        if not 1 <= args.query <= 18:
+            parser.error("Query number must be between 1 and 18")
+        address = f"/ch/{args.query:02d}/mix/on"
+
+    else:
+        parser.error("You must specify --channel, --group, or --query.")
+
+    query_mode = args.query is not None
 
 
     # ----- Toggle Logic -----
@@ -252,23 +257,24 @@ def main():
         sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         sock.bind(("", 0))
 
-        # ----- Toggle Logic -----
         send_query(sock, address, mixer_ip, mixer_port)
         current = wait_for_reply(sock, address)
 
-        new_value = 0 if current == 1 else 1
-        send_value(sock, address, new_value, mixer_ip, mixer_port)
+        if not query_mode:
+            new_value = 0 if current == 1 else 1
+            send_value(sock, address, new_value, mixer_ip, mixer_port)
 
-        send_query(sock, address, mixer_ip, mixer_port)
-        confirmed = wait_for_reply(sock, address)
-
+            send_query(sock, address, mixer_ip, mixer_port)
+            confirmed = wait_for_reply(sock, address)
+        else:
+            confirmed = current
 
     if confirmed not in (0, 1):
         print("Warning: Unexpected response from mixer.")
         sys.exit(1)
 
-    state = "UNMUTED" if confirmed == 1 else "MUTED"
-    print(f"{target_name} {target_num} is now {state}")
+    state = "MUTED" if confirmed == 0 else "UNMUTED"
+    print(state)
 
 
 def main_cli():
