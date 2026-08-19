@@ -16,6 +16,7 @@ from ipaddress import IPv4Address, ip_address
 from socket import socket, AF_INET, SOCK_DGRAM, timeout, SOL_SOCKET, SO_REUSEADDR
 from argparse import ArgumentParser
 from pathlib import Path
+from time import sleep
 
 from pythonosc.osc_message_builder import OscMessageBuilder
 from pythonosc.osc_packet import OscPacket
@@ -29,7 +30,7 @@ CONFIG_FILE = CONFIG_DIR / "config.json"
 DEFAULT_CONFIG = {
     "mixer_ip": "",
     "mixer_port": 10024,
-    "timeout_seconds": 0.05
+    "timeout_seconds": 0.1
 }
 
 
@@ -263,6 +264,8 @@ def main():
         if not query_mode:
             new_value = 0 if current == 1 else 1
             send_value(sock, address, new_value, mixer_ip, mixer_port)
+
+            sleep(0.01)
 
             send_query(sock, address, mixer_ip, mixer_port)
             confirmed = wait_for_reply(sock, address)
