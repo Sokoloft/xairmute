@@ -31,6 +31,6 @@ It's as simple as `pip install xairmute`
 
 ### Docs used
 
-[X-Air / M-Air OSC Commands](https://behringer.world/wiki/doku.php?id=x-air_osc)
+[X-Air / M-Air OSC Commands](https://web.archive.org/web/20260607074026/https://behringer.world/wiki/doku.php?id=x-air_osc)
 
 [X AIR Mixer Series Remote Control Protocol](https://archive.org/details/x-air-remote-control-protocol)
