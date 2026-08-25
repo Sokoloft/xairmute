@@ -22,7 +22,7 @@ from pythonosc.osc_message_builder import OscMessageBuilder
 from pythonosc.osc_packet import OscPacket
 
 App = "xairmute"
-Version = "1.0.2"
+Version = "1.0.3"
 
 CONFIG_DIR = Path.home() / ".config" / App
 CONFIG_FILE = CONFIG_DIR / "config.json"
