@@ -22,7 +22,7 @@ from pythonosc.osc_message_builder import OscMessageBuilder
 from pythonosc.osc_packet import OscPacket
 
 App = "xairmute"
-Version = "1.0.1"
+Version = "1.0.2"
 
 CONFIG_DIR = Path.home() / ".config" / App
 CONFIG_FILE = CONFIG_DIR / "config.json"
@@ -153,25 +153,27 @@ def main():
 
     parser.add_argument("-v", "--version", action="version", version=f"{App} {Version}")
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("-c", "--channel", type=int, metavar="#", help="toggle channel # (1-18)")
+    group.add_argument("-c", "--channel", type=int, metavar="#", help="toggle channel # (1-16)")
     group.add_argument("-g", "--group", type=int, metavar="#", help="toggle mute group # (1-4)")
     group.add_argument("-q", "--query", type=int, metavar="#", help="query channel mute status")
+    group.add_argument("--fx", type=int, metavar="#", help="toggle FX # (1-4)")
+    group.add_argument("--aux", action="store_true", help="toggle Aux mute")
+    group.add_argument("--main", action="store_true", help="toggle Main L/R mute")
     group.add_argument(
         "--port",
         nargs="?",
         const=True,
         metavar="PORT",
         type=int,
-        help=f"change mixer's port in config"
+        help="change mixer's port in config"
     )
     group.add_argument(
         "--ip",
         nargs="?",
         const=True,
         metavar="192.168.X.XXX",
-        help=f"change mixer's ip in config"
+        help="change mixer's ip in config"
     )
-
 
     args = parser.parse_args()
 
@@ -232,8 +234,8 @@ def main():
 
     # ----- Determine target -----
     if args.channel is not None:
-        if not 1 <= args.channel <= 18:
-            parser.error("Channel number must be between 1 and 18")
+        if not 1 <= args.channel <= 16:
+            parser.error("Channel number must be between 1 and 16")
         address = f"/ch/{args.channel:02d}/mix/on"
 
     elif args.group is not None:
@@ -242,12 +244,23 @@ def main():
         address = f"/config/mute/{args.group}"
 
     elif args.query is not None:
-        if not 1 <= args.query <= 18:
-            parser.error("Query number must be between 1 and 18")
+        if not 1 <= args.query <= 16:
+            parser.error("Query number must be between 1 and 16")
         address = f"/ch/{args.query:02d}/mix/on"
 
+    elif args.fx is not None:
+        if not 1 <= args.fx <= 4:
+            parser.error("FX number must be between 1 and 4")
+        address = f"/rtn/{args.fx}/mix/on"
+
+    elif args.aux:
+        address = f"/rtn/aux/mix/on"
+
+    elif args.main:
+        address = f"/lr/mix/on"
+
     else:
-        parser.error("You must specify --channel, --group, or --query.")
+        parser.error("You must specify a valid command. Run with -h to see commands.")
 
     query_mode = args.query is not None
 
